@@ -5,6 +5,9 @@ enablePlugins(GitVersioning)
 
 git.useGitDescribe in ThisBuild := true
 
+ThisBuild / Compile / doc / sources:= Seq.empty
+ThisBuild / Compile / packageDoc / publishArtifact := false
+
 scalaVersion in ThisBuild := "2.13.2"
 
 crossScalaVersions in ThisBuild := Seq("2.11.12", "2.12.11", "2.13.2")
