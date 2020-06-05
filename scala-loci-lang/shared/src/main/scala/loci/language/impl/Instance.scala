@@ -388,7 +388,7 @@ class Instance(val c: blackbox.Context) {
     }
   }
 
-  def collectDefinitions(
+  private def collectDefinitions(
       module: Type,
       peer: Type,
       placedValues: Type,
