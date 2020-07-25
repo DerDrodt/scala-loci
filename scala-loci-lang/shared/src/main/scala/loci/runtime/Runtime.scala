@@ -24,7 +24,7 @@ class Runtime[P](
 
   private val doTerminated = Notice.Steady[Unit]
 
-  public val remoteConnections = new RemoteConnections(peer, ties)
+  val remoteConnections = new RemoteConnections(peer, ties)
 
   private object state {
     private var running = false
