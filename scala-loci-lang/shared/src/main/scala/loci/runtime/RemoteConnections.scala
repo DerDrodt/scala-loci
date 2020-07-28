@@ -236,7 +236,7 @@ class RemoteConnections(peer: Peer.Signature, ties: Map[Peer.Signature, Peer.Tie
       }
     }
 
-  override protected def removeConnection(remote: Remote.Reference) =
+  override def removeConnection(remote: Remote.Reference) =
     sync {
       handleConstraintChanges {
         super.removeConnection(remote)
