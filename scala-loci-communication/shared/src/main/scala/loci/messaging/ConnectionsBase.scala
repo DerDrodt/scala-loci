@@ -31,8 +31,7 @@ trait ConnectionsBase[R, M] {
     private[ConnectionsBase] val messages = mutable.ListBuffer.empty[(R, M)]
     private[ConnectionsBase] val listeners = mutable.ListBuffer.empty[Listening]
     private[ConnectionsBase] val remotes = new ConcurrentLinkedQueue[R]
-    private[ConnectionsBase] val connections =
-      new ConcurrentHashMap[R, Connection[ConnectionsBase.Protocol]]
+    private[ConnectionsBase] val connections = new ConcurrentHashMap[R, Connection[ConnectionsBase.Protocol]]
   }
 
   protected val state: BaseState

@@ -37,7 +37,7 @@ class RemoteConnections(peer: Peer.Signature, ties: Map[Peer.Signature, Peer.Tie
     val potentials = mutable.ListBuffer.empty[Peer.Signature]
   }
 
-  protected val state = new State
+  val state = new State
 
   private val doConstraintsSatisfied = Notice.Stream[Unit]
 
@@ -67,7 +67,7 @@ class RemoteConnections(peer: Peer.Signature, ties: Map[Peer.Signature, Peer.Tie
           case Success(connection) =>
             val remote = Remote.Reference(
               state.createId(), remotePeer)(
-              connection.protocol, this)
+              connection.protocol, this, connector)
 
             var closedHandler: Notice[_] = null
             var receiveHandler: Notice[_] = null
@@ -149,7 +149,7 @@ class RemoteConnections(peer: Peer.Signature, ties: Map[Peer.Signature, Peer.Tie
                 receiveHandler.remove()
 
               val handleRequest = handleRequestMessage(
-                connection, remotePeer, createDesignatedInstance)
+                connection, remotePeer, createDesignatedInstance, listener)
 
               val result = deserializeMessage(data) flatMap {
                 handleRequest orElse handleUnknownMessage
@@ -176,7 +176,8 @@ class RemoteConnections(peer: Peer.Signature, ties: Map[Peer.Signature, Peer.Tie
   private def handleRequestMessage(
       connection: Connection[ConnectionsBase.Protocol],
       remotePeer: Peer.Signature,
-      createDesignatedInstance: Boolean = false)
+      createDesignatedInstance: Boolean = false,
+      listener: Listener[ConnectionsBase.Protocol] = null)
   : PartialFunction[Message[Method], Try[(Remote.Reference, RemoteConnections)]] = {
     case RequestMessage(requested, requesting) =>
       sync {
@@ -192,7 +193,7 @@ class RemoteConnections(peer: Peer.Signature, ties: Map[Peer.Signature, Peer.Tie
 
                 val remote = Remote.Reference(
                   instance.state.createId(), remotePeer)(
-                  connection.protocol, this)
+                  connection.protocol, this, null, listener)
 
                 connection.send(serializeMessage(AcceptMessage()))
 
