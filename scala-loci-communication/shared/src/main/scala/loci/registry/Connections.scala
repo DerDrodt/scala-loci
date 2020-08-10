@@ -42,7 +42,7 @@ class Connections[M: Message.Method]
     def createId() = counter.getAndIncrement()
   }
 
-  protected val state = new State
+  val state = new State
 
   def connect(
       connector: Connector[Connections.Protocol])(

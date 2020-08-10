@@ -10,7 +10,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 import scala.util.{Failure, Success, Try}
 import scala.util.control.NonFatal
 
-private class TCPListener(
+class TCPListener(
   port: Int, interface: String, properties: TCP.Properties)
     extends Listener[TCP] {
 
