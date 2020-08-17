@@ -24,13 +24,18 @@ trait ConnectionsBase[R, M] {
     private val terminated = new AtomicBoolean(false)
 
     def run() = running.set(true)
+
     def terminate() = terminated.set(true)
+
     def isRunning = running.get && !terminated.get
+
     def isTerminated = terminated.get
 
     private[ConnectionsBase] val messages = mutable.ListBuffer.empty[(R, M)]
+    private[ConnectionsBase] val outgoingMessages = mutable.ListBuffer.empty[(R, M)]
     private[ConnectionsBase] val listeners = mutable.ListBuffer.empty[Listening]
     private[ConnectionsBase] val remotes = new ConcurrentLinkedQueue[R]
+    private[ConnectionsBase] val bufferedRemotes = new ConcurrentLinkedQueue[R]
     private[ConnectionsBase] val connections =
       new ConcurrentHashMap[R, Connection[ConnectionsBase.Protocol]]
   }
@@ -86,7 +91,9 @@ trait ConnectionsBase[R, M] {
 
         afterSync {
           connections foreach { case (_, connection) => connection.close() }
-          listeners foreach { _.stopListening() }
+          listeners foreach {
+            _.stopListening()
+          }
           doTerminated.set(remotes)
 
           state.remotes.clear()
@@ -98,15 +105,21 @@ trait ConnectionsBase[R, M] {
 
   def disconnect(remote: R): Unit =
     if (!state.isTerminated)
-      Option(state.connections get remote) foreach { _.close() }
+      Option(state.connections get remote) foreach {
+        _.close()
+      }
 
   def send(remote: R, message: M): Unit =
     if (!state.isTerminated)
       state.connections get remote match {
         case null =>
           logging.warn(s"message not sent to unconnected remote $remote: $message")
-        case connection =>
-          connection.send(serializeMessage(message))
+        case connection => {
+          if (!state.bufferedRemotes.contains(remote))
+            connection.send(serializeMessage(message))
+          else
+            state.outgoingMessages += remote -> message
+        }
       }
     else
       logging.warn(s"message not sent after connection system shutdown to remote $remote: $message")
@@ -140,7 +153,9 @@ trait ConnectionsBase[R, M] {
         if (handlers.nonEmpty) {
           val result = handlers.result
           handlers.clear()
-          result foreach { _.apply }
+          result foreach {
+            _.apply
+          }
         }
       }
     }
@@ -169,8 +184,7 @@ trait ConnectionsBase[R, M] {
         Failure(terminatedException)
     }
 
-  protected def addConnection(
-      remote: R, connection: Connection[ConnectionsBase.Protocol]): Try[Unit] =
+  protected def addConnection(remote: R, connection: Connection[ConnectionsBase.Protocol]): Try[Unit] =
     sync {
       if (!isTerminated) {
         logging.info(s"established connection to remote $remote")
@@ -178,13 +192,17 @@ trait ConnectionsBase[R, M] {
         state.connections.put(remote, connection)
         state.remotes.add(remote)
 
-        afterSync { doRemoteJoined.fire(remote) }
+        afterSync {
+          doRemoteJoined.fire(remote)
+        }
 
         var receiveHandler: Notice[_] = null
         var closedHandler: Notice[_] = null
 
         receiveHandler = connection.receive foreach {
-          deserializeMessage(_) map { doBufferedReceive(remote, _) }
+          deserializeMessage(_) map {
+            doBufferedReceive(remote, _)
+          }
         }
 
         closedHandler = connection.closed foreach { _ =>
@@ -215,7 +233,9 @@ trait ConnectionsBase[R, M] {
 
         state.remotes.remove(remote)
         state.connections.remove(remote)
-        afterSync { doRemoteLeft.fire(remote) }
+        afterSync {
+          doRemoteLeft.fire(remote)
+        }
       }
     }
 }
