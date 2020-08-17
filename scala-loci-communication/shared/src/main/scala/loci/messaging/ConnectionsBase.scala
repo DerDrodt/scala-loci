@@ -40,7 +40,7 @@ trait ConnectionsBase[R, M] {
       new ConcurrentHashMap[R, Connection[ConnectionsBase.Protocol]]
   }
 
-  protected val state: BaseState
+  val state: BaseState
 
   private val doRemoteJoined = Notice.Stream[R]
 

@@ -2,6 +2,8 @@ package loci
 package runtime
 
 import communicator.ProtocolCommon
+import communicator.{Connector, Listener}
+import messaging.ConnectionsBase
 
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -12,7 +14,7 @@ object Remote {
     id: Long,
     signature: Peer.Signature)(
     val protocol: ProtocolCommon,
-    private[runtime] val remoteConnections: RemoteConnections)
+    private[runtime] val remoteConnections: RemoteConnections, val connector: Connector[ConnectionsBase.Protocol] = null, val listener: Listener[ConnectionsBase.Protocol] = null)
       extends loci.Remote.Reference[Nothing] {
 
     private[runtime] val isConnected = new AtomicBoolean(true)
