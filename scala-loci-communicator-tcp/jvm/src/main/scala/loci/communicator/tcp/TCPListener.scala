@@ -11,7 +11,7 @@ import scala.util.{Failure, Success, Try}
 import scala.util.control.NonFatal
 
 class TCPListener(
-  port: Int, interface: String, properties: TCP.Properties)
+  val port: Int, interface: String, properties: TCP.Properties)
     extends Listener[TCP] {
 
   protected def startListening(connectionEstablished: Connected[TCP]): Try[Listening] =

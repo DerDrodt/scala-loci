@@ -8,7 +8,7 @@ import scala.util.{Failure, Success}
 import scala.util.control.NonFatal
 
 class TCPConnector(
-  host: String, port: Int, properties: TCP.Properties)
+  val host: String, val port: Int, properties: TCP.Properties)
     extends Connector[TCP] {
 
   protected def connect(connectionEstablished: Connected[TCP]): Unit = {
