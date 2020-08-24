@@ -1,7 +1,7 @@
 package loci
 package runtime
 
-import communicator.{Connection, Connector, Listener, ConnectionSetup, Connector, Listener}
+import communicator.{Connection, Connector, Listener, ConnectionSetup}
 import messaging.{ConnectionsBase, Message}
 import transmitter.RemoteAccessException
 
@@ -40,9 +40,9 @@ class RemoteConnections(peer: Peer.Signature, ties: Map[Peer.Signature, Peer.Tie
   protected class State extends BaseState {
     private val counter = new AtomicLong(1)
 
-    def createId(): Any = counter.getAndIncrement()
+    def createId() = counter.getAndIncrement()
 
-    val potentials: mutable.Seq[Peer.Signature] = mutable.ListBuffer.empty[Peer.Signature]
+    val potentials = mutable.ListBuffer.empty[Peer.Signature]
   }
 
   val state = new State
