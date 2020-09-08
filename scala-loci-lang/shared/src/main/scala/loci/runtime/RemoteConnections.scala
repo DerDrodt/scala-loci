@@ -75,7 +75,7 @@ class RemoteConnections(peer: Peer.Signature, ties: Map[Peer.Signature, Peer.Tie
           case Success(connection) =>
             val remote = Remote.Reference(
               state.createId(), remotePeer)(
-              connection.protocol, this, connector)
+              connection.protocol, this)
 
             var closedHandler: Notice[_] = null
             var receiveHandler: Notice[_] = null
@@ -203,7 +203,7 @@ class RemoteConnections(peer: Peer.Signature, ties: Map[Peer.Signature, Peer.Tie
 
                 val remote = Remote.Reference(
                   instance.state.createId(), remotePeer)(
-                  connection.protocol, this, null, listener)
+                  connection.protocol, this)
 
                 connection.send(serializeMessage(AcceptMessage()))
 

@@ -14,7 +14,7 @@ object Remote {
     id: Long,
     signature: Peer.Signature)(
     val protocol: ProtocolCommon,
-    private[runtime] val remoteConnections: RemoteConnections, val connector: Connector[ConnectionsBase.Protocol] = null, val listener: Listener[ConnectionsBase.Protocol] = null)
+    private[runtime] val remoteConnections: RemoteConnections)
       extends loci.Remote.Reference[Nothing] {
 
     private[runtime] val isConnected = new AtomicBoolean(true)
