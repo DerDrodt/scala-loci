@@ -1,7 +1,7 @@
 package loci
 package runtime
 
-import communicator.{Connection, Connector, Listener, ConnectionSetup}
+import communicator.{Connection, Connector, Listener}
 import messaging.{ConnectionsBase, Message}
 import transmitter.RemoteAccessException
 
@@ -43,6 +43,8 @@ class RemoteConnections(peer: Peer.Signature, ties: Map[Peer.Signature, Peer.Tie
     def createId() = counter.getAndIncrement()
 
     val potentials = mutable.ListBuffer.empty[Peer.Signature]
+    val hereUUID = java.util.UUID.randomUUID.toString
+    val remoteToUUID = mutable.Map.empty[Remote.Reference, String]
   }
 
   val state = new State
@@ -119,7 +121,8 @@ class RemoteConnections(peer: Peer.Signature, ties: Map[Peer.Signature, Peer.Tie
             connection.send(serializeMessage(
               RequestMessage(
                 Peer.Signature.serialize(remotePeer),
-                Peer.Signature.serialize(peer))))
+                Peer.Signature.serialize(peer),
+                state.hereUUID)))
 
           case Failure(exception) =>
             logging.trace(s"connecting to remote failed: $remotePeer", exception)
@@ -189,7 +192,7 @@ class RemoteConnections(peer: Peer.Signature, ties: Map[Peer.Signature, Peer.Tie
       createDesignatedInstance: Boolean = false,
       listener: Listener[ConnectionsBase.Protocol] = null)
   : PartialFunction[Message[Method], Try[(Remote.Reference, RemoteConnections)]] = {
-    case RequestMessage(requested, requesting) =>
+    case RequestMessage(requested, requesting, requestingUUID) =>
       sync {
         if (!isTerminated)
           Peer.Signature.deserialize(requested) flatMap { requestedPeer =>
@@ -205,7 +208,9 @@ class RemoteConnections(peer: Peer.Signature, ties: Map[Peer.Signature, Peer.Tie
                   instance.state.createId(), remotePeer)(
                   connection.protocol, this)
 
-                connection.send(serializeMessage(AcceptMessage()))
+                state.remoteToUUID.addOne((remote, requestingUUID))
+
+                connection.send(serializeMessage(AcceptMessage(state.hereUUID)))
 
                 val result = instance.addConnection(remote, connection)
 
@@ -224,10 +229,12 @@ class RemoteConnections(peer: Peer.Signature, ties: Map[Peer.Signature, Peer.Tie
                                    connection: Connection[ConnectionsBase.Protocol],
                                    remote: Remote.Reference)
   : PartialFunction[Message[Method], Try[Remote.Reference]] = {
-    case AcceptMessage() =>
+    case AcceptMessage(uuid) =>
       sync {
-        if (!isTerminated)
+        if (!isTerminated) {
+          state.remoteToUUID.addOne((remote, uuid))
           addConnection(remote, connection) map { _ => remote }
+        }
         else
           Failure(terminatedException)
       }

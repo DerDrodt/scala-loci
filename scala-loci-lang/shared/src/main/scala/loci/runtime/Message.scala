@@ -14,36 +14,46 @@ object Method {
 }
 
 object AcceptMessage {
-  def apply(): Message[Method] =
-    Message(Connect, Map("Type" -> Seq("Accept")), MessageBuffer.empty)
+  def apply(uuid: String): Message[Method] =
+    Message(
+      Connect,
+      Map(
+        "Type" -> Seq("Accept"),
+        "UUID" -> Seq(uuid)),
+      MessageBuffer.empty)
 
-  def unapply(message: Message[Method]): Boolean =
-    (message.method, message.properties get "Type") match {
-      case (Connect, Some(Seq("Accept"))) => true
-      case _ => false
+  def unapply(message: Message[Method]): Option[String] =
+    (message.method,
+     message.properties get "Type",
+     message.properties get "UUID") match {
+      case (Connect, Some(Seq("Accept")), Some(Seq(uuid))) => Some(uuid)
+      case _ => None
     }
 }
 
 object RequestMessage {
-  def apply(requested: String, requesting: String): Message[Method] =
+  def apply(requested: String, requesting: String, requestingUUID: String): Message[Method] =
     Message(
       Connect,
       Map(
         "Type" -> Seq("Request"),
         "Requested" -> Seq(requested),
-        "Requesting" -> Seq(requesting)),
+        "Requesting" -> Seq(requesting),
+        "UUID" -> Seq(requestingUUID)),
       MessageBuffer.empty)
 
-  def unapply(message: Message[Method]): Option[(String, String)] =
+  def unapply(message: Message[Method]): Option[(String, String, String)] =
     (message.method,
      message.properties get "Type",
      message.properties get "Requested",
-     message.properties get "Requesting") match {
+     message.properties get "Requesting",
+     message.properties get "UUID") match {
       case (Connect,
           Some(Seq("Request")),
           Some(Seq(requested)),
-          Some(Seq(requesting))) =>
-        Some((requested, requesting))
+          Some(Seq(requesting)),
+          Some(Seq(requestingUUID))) =>
+        Some((requested, requesting, requestingUUID))
       case _ =>
         None
     }
