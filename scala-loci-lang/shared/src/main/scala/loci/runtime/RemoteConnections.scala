@@ -186,11 +186,12 @@ class RemoteConnections(peer: Peer.Signature, ties: Map[Peer.Signature, Peer.Tie
         Failure(terminatedException)
     }
 
-  private def handleRequestMessage(
+  protected def handleRequestMessage(
       connection: Connection[ConnectionsBase.Protocol],
       remotePeer: Peer.Signature,
       createDesignatedInstance: Boolean = false,
-      listener: Listener[ConnectionsBase.Protocol] = null)
+      listener: Listener[ConnectionsBase.Protocol] = null,
+      remoteRef: Option[Remote.Reference] = None)
   : PartialFunction[Message[Method], Try[(Remote.Reference, RemoteConnections)]] = {
     case RequestMessage(requested, requesting, requestingUUID) =>
       sync {
@@ -204,9 +205,12 @@ class RemoteConnections(peer: Peer.Signature, ties: Map[Peer.Signature, Peer.Tie
                   if (!createDesignatedInstance) this
                   else new RemoteConnections(peer, ties)
 
-                val remote = Remote.Reference(
-                  instance.state.createId(), remotePeer)(
-                  connection.protocol, this)
+                val remote = remoteRef match {
+                  case Some(r) => r
+                  case None => Remote.Reference(
+                    instance.state.createId(), remotePeer)(
+                    connection.protocol, this)
+                }
 
                 state.remoteToUUID.addOne((remote, requestingUUID))
 
@@ -225,7 +229,7 @@ class RemoteConnections(peer: Peer.Signature, ties: Map[Peer.Signature, Peer.Tie
       }
   }
 
-  private def handleAcceptMessage(
+  protected def handleAcceptMessage(
                                    connection: Connection[ConnectionsBase.Protocol],
                                    remote: Remote.Reference)
   : PartialFunction[Message[Method], Try[Remote.Reference]] = {
