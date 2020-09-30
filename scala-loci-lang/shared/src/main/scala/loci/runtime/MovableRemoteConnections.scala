@@ -7,7 +7,7 @@ import loci.communicator.{Connection, Connector, Listener, ProtocolCommon}
 import scala.util.{Failure, Success, Try}
 
 class MovableRemoteConnections(peer: Peer.Signature, ties: Map[Peer.Signature, Peer.Tie], uuid: Option[String]) extends RemoteConnections(peer, ties, uuid) {
-  private var expectMoveRemote: Option[(Remote.Reference, Peer.Signature, Boolean)] = None
+  private var expectMoveRemote: Option[(Remote.Reference, Boolean, String)] = None
   private var ignoreViolationsFor: Option[Peer.Signature] = None
 
   override protected def deserializeMessage(message: MessageBuffer) = {
@@ -18,7 +18,7 @@ class MovableRemoteConnections(peer: Peer.Signature, ties: Map[Peer.Signature, P
     result
   }
 
-  def expectMove(ref: Remote.Reference): Try[Unit] = {
+  def expectMove(ref: Remote.Reference, uuid: String): Try[Unit] = {
     if (!state.bufferedRemotes.contains(ref)) {
       return Failure(new Exception(s"Cannot move remote $ref because it is not buffered"))
     }
@@ -31,7 +31,8 @@ class MovableRemoteConnections(peer: Peer.Signature, ties: Map[Peer.Signature, P
       case _ => true
     }
     val sig = state.remoteToSig(ref)
-    expectMoveRemote = Some(ref, sig, listen)
+    ignoreViolationsFor = Some(sig)
+    expectMoveRemote = Some(ref, listen, uuid)
     Success()
   }
 
@@ -52,10 +53,9 @@ class MovableRemoteConnections(peer: Peer.Signature, ties: Map[Peer.Signature, P
                                                remoteRef: Option[Remote.Reference] = None)
   : PartialFunction[Message[Method], Try[(Remote.Reference, RemoteConnections)]] = {
     if (expectMoveRemote.isDefined) {
-      val (remote, sig, listen) = expectMoveRemote.get
+      val (remote, listen, uuid) = expectMoveRemote.get
       if (listen) {
         expectMoveRemote = None
-        ignoreViolationsFor = Some(sig)
         return super.handleRequestMessage(connection, remotePeer, createDesignatedInstance, listener, Some(remote))
       }
     }
@@ -69,11 +69,10 @@ class MovableRemoteConnections(peer: Peer.Signature, ties: Map[Peer.Signature, P
                                               remotePeer: Peer.Signature)
   : PartialFunction[Message[Method], Try[Remote.Reference]] = {
     expectMoveRemote match {
-      case Some((ref, sig, false)) =>
+      case Some((ref, false, uuid)) =>
         // The only issue here as far as I can see would be that there is a new Remote.Reference that was created,
         // but is unused. Maybe that breaks some assumptions?
         expectMoveRemote = None
-        ignoreViolationsFor = Some(sig)
         super.handleAcceptMessage(connection, ref, remotePeer)
       case _ => super.handleAcceptMessage(connection, remote, remotePeer)
     }
