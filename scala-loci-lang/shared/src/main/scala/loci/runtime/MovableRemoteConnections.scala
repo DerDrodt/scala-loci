@@ -6,7 +6,7 @@ import loci.communicator.{Connection, Connector, Listener, ProtocolCommon}
 
 import scala.util.{Failure, Success, Try}
 
-class MovableRemoteConnections(peer: Peer.Signature, ties: Map[Peer.Signature, Peer.Tie]) extends RemoteConnections(peer, ties) {
+class MovableRemoteConnections(peer: Peer.Signature, ties: Map[Peer.Signature, Peer.Tie], uuid: Option[String]) extends RemoteConnections(peer, ties, uuid) {
   private var expectMoveRemote: Option[(Remote.Reference, Boolean)] = None
 
   override protected def deserializeMessage(message: MessageBuffer) = {

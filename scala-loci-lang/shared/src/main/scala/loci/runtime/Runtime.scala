@@ -15,7 +15,8 @@ class Runtime[P](
     ties: Runtime.Ties,
     context: ExecutionContext,
     connect: Runtime.Connections,
-    system: Runtime.SystemFactory)
+    system: Runtime.SystemFactory,
+    uuid: Option[String] = None)
   extends loci.Runtime[P] {
 
   private val doStarted = Notice.Stream[Instance[P]]
@@ -24,7 +25,7 @@ class Runtime[P](
 
   private val doTerminated = Notice.Steady[Unit]
 
-  val remoteConnections = new MovableRemoteConnections(peer, ties)
+  val remoteConnections = new MovableRemoteConnections(peer, ties, uuid)
 
   private object state {
     private var running = false
@@ -307,7 +308,7 @@ object Runtime {
       connect: Connections,
       system: SystemFactory,
       uuid: Option[String] = None): Runtime[P] = {
-    val runtime = new Runtime[P](peer, ties, context, connect, system)
+    val runtime = new Runtime[P](peer, ties, context, connect, system, uuid)
     runtime.run()
     runtime
   }
