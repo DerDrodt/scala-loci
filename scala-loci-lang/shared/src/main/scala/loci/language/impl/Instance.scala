@@ -309,11 +309,11 @@ class Instance(val c: blackbox.Context) {
           getOrElse q"${termNames.ROOTPKG}.loci.contexts.Queued.create()")
 
         val connect = (exprs
-          collectFirst { case arg if arg.tpe <:< types.connections => $arg }
+          collectFirst { case arg if arg.tpe <:< types.connections => arg }
           getOrElse q"${termNames.ROOTPKG}.loci.language.Connections.empty")
 
         val uuid = (exprs
-          collectFirst {case arg if arg.tpe <:< types.uuid => q"Some(arg.toString)"}
+          collectFirst {case arg if arg.tpe <:< types.uuid => q"Some($arg.toString)"}
           getOrElse q"None")
 
         // construct peer instance
