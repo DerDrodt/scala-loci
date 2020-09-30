@@ -32,6 +32,7 @@ class MovableRemoteConnections(peer: Peer.Signature, ties: Map[Peer.Signature, P
     }
     val sig = state.remoteToSig(ref)
     ignoreViolationsFor = Some(sig)
+    println("Ignoring constraint violations for signature " + sig.toString)
     expectMoveRemote = Some(ref, listen, uuid)
     Success()
   }
@@ -55,6 +56,7 @@ class MovableRemoteConnections(peer: Peer.Signature, ties: Map[Peer.Signature, P
     if (expectMoveRemote.isDefined) {
       val (remote, listen, uuid) = expectMoveRemote.get
       if (listen) {
+        println("Got request message while awaiting move")
         expectMoveRemote = None
         return super.handleRequestMessage(connection, remotePeer, createDesignatedInstance, listener, Some(remote))
       }
@@ -69,11 +71,13 @@ class MovableRemoteConnections(peer: Peer.Signature, ties: Map[Peer.Signature, P
                                               remotePeer: Peer.Signature)
   : PartialFunction[Message[Method], Try[Remote.Reference]] = {
     expectMoveRemote match {
-      case Some((ref, false, uuid)) =>
+      case Some((ref, false, uuid)) => {
         // The only issue here as far as I can see would be that there is a new Remote.Reference that was created,
         // but is unused. Maybe that breaks some assumptions?
+        println("Got accept message while awaiting move")
         expectMoveRemote = None
         super.handleAcceptMessage(connection, ref, remotePeer)
+      }
       case _ => super.handleAcceptMessage(connection, remote, remotePeer)
     }
   }
