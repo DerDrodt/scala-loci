@@ -1,5 +1,7 @@
 package loci
 
+import java.util.UUID
+
 import language._
 
 import scala.annotation.compileTimeOnly
@@ -7,7 +9,7 @@ import scala.concurrent.ExecutionContext
 import scala.language.experimental.macros
 import scala.language.implicitConversions
 
-class Instance[P] private[loci] (dummy: Int) {
+class Instance[P] private[loci](dummy: Int) {
   @compileTimeOnly("Multitier peer instantiation must be of the form: multitier start new Instance[P]")
   def this() = this(0)
 
@@ -21,22 +23,38 @@ class Instance[P] private[loci] (dummy: Int) {
   def this(separateMainThread: Boolean) = this(0)
 
   @compileTimeOnly("Multitier peer instantiation must be of the form: multitier start new Instance[P]")
+  def this(uuid: UUID) = this(0)
+
+  @compileTimeOnly("Multitier peer instantiation must be of the form: multitier start new Instance[P]")
   def this(context: ExecutionContext, connect: Connections) = this(0)
 
   @compileTimeOnly("Multitier peer instantiation must be of the form: multitier start new Instance[P]")
   def this(separateMainThread: Boolean, connect: Connections) = this(0)
 
   @compileTimeOnly("Multitier peer instantiation must be of the form: multitier start new Instance[P]")
+  def this(uuid: UUID, connect: Connections) = this(0)
+
+  @compileTimeOnly("Multitier peer instantiation must be of the form: multitier start new Instance[P]")
   def this(context: ExecutionContext, separateMainThread: Boolean) = this(0)
 
   @compileTimeOnly("Multitier peer instantiation must be of the form: multitier start new Instance[P]")
+  def this(context: ExecutionContext, uuid: UUID) = this(0)
+
+  @compileTimeOnly("Multitier peer instantiation must be of the form: multitier start new Instance[P]")
+  def this(separateMainThread: Boolean, uuid: UUID) = this(0)
+
+  @compileTimeOnly("Multitier peer instantiation must be of the form: multitier start new Instance[P]")
   def this(context: ExecutionContext, separateMainThread: Boolean, connect: Connections) = this(0)
+
+  @compileTimeOnly("Multitier peer instantiation must be of the form: multitier start new Instance[P]")
+  def this(context: ExecutionContext, separateMainThread: Boolean, uuid: UUID, connect: Connections) = this(0)
 }
 
 object Instance {
+
   final implicit class Ops[P](instance: Instance[P]) {
     def retrieve[T](retrievable: Retrievable[T]): T =
-      macro language.impl.Instance.retrieve
+    macro language.impl.Instance.retrieve
 
     def terminate(): Unit = instance match {
       case instance: runtime.Instance[P] => instance.terminate()
@@ -72,4 +90,5 @@ object Instance {
   object Retrievable extends RetrievableLocal {
     implicit def subjective[T, R, P](v: T per R on P): Retrievable[SubjectiveValue[T, P]] = erased
   }
+
 }
