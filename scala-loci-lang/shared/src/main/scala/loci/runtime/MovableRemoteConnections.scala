@@ -9,7 +9,7 @@ import scala.util.{Failure, Success, Try}
 class MovableRemoteConnections(peer: Peer.Signature, ties: Map[Peer.Signature, Peer.Tie]) extends RemoteConnections(peer, ties) {
   private var expectMoveRemote: Option[(Remote.Reference, Boolean)] = None
 
-  protected def deserializeMessage(message: MessageBuffer) = {
+  override protected def deserializeMessage(message: MessageBuffer) = {
     val result = Message.deserialize[Method](message)
     result.failed foreach {
       logging.warn("could not parse message", _)
