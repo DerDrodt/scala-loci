@@ -305,7 +305,8 @@ object Runtime {
       ties: Ties,
       context: ExecutionContext,
       connect: Connections,
-      system: SystemFactory): Runtime[P] = {
+      system: SystemFactory,
+      uuid: Option[String] = None): Runtime[P] = {
     val runtime = new Runtime[P](peer, ties, context, connect, system)
     runtime.run()
     runtime

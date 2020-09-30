@@ -22,6 +22,7 @@ class Instance(val c: blackbox.Context) {
     val connections = typeOf[language.Connections]
     val executionContext = typeOf[ExecutionContext]
     val placedValues = c.mirror.staticClass("_root_.loci.runtime.PlacedValues").asType.toType
+    val uuid = typeOf[java.util.UUID]
   }
 
   object symbols {
@@ -308,8 +309,12 @@ class Instance(val c: blackbox.Context) {
           getOrElse q"${termNames.ROOTPKG}.loci.contexts.Queued.create()")
 
         val connect = (exprs
-          collectFirst { case arg if arg.tpe <:< types.connections => arg }
+          collectFirst { case arg if arg.tpe <:< types.connections => q"Some($arg)" }
           getOrElse q"${termNames.ROOTPKG}.loci.language.Connections.empty")
+
+        val uuid = (exprs
+          collectFirst {case arg if arg.tpe <:< types.uuid => arg}
+          getOrElse q"None")
 
         // construct peer instance
         val (earlyDefinitions, lateDefinitions) =
@@ -378,7 +383,8 @@ class Instance(val c: blackbox.Context) {
                 }
               $$loci$$instance.$$loci$$sys.start()
               $$loci$$instance
-            })"""
+            },
+            $uuid)"""
 
         c.retyper untypecheckAll tree
 

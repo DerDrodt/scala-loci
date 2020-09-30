@@ -10,7 +10,7 @@ import java.util.concurrent.atomic.AtomicLong
 import scala.collection.mutable
 import scala.util.{Failure, Success, Try}
 
-class RemoteConnections(peer: Peer.Signature, ties: Map[Peer.Signature, Peer.Tie])
+class RemoteConnections(peer: Peer.Signature, ties: Map[Peer.Signature, Peer.Tie], uuid: Option[String] = None)
   extends ConnectionsBase[Remote.Reference, Message[Method]] {
 
   protected def deserializeMessage(message: MessageBuffer) = {
@@ -37,17 +37,20 @@ class RemoteConnections(peer: Peer.Signature, ties: Map[Peer.Signature, Peer.Tie
       _ -> Peer.Tie.Multiple
     }).toMap ++ ties
 
-  protected class State extends BaseState {
+  protected class State(uuid: Option[String] = None) extends BaseState {
     private val counter = new AtomicLong(1)
 
     def createId() = counter.getAndIncrement()
 
     val potentials = mutable.ListBuffer.empty[Peer.Signature]
-    val hereUUID = java.util.UUID.randomUUID.toString
+    val hereUUID: String = uuid match {
+      case Some(u) => u
+      case None => java.util.UUID.randomUUID().toString
+    }
     val remoteToUUID = mutable.Map.empty[Remote.Reference, String]
   }
 
-  val state = new State
+  val state = new State(uuid)
 
   private val doConstraintsSatisfied = Notice.Stream[Unit]
 
