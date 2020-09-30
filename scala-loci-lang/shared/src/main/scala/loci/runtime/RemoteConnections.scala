@@ -48,6 +48,7 @@ class RemoteConnections(peer: Peer.Signature, ties: Map[Peer.Signature, Peer.Tie
       case None => java.util.UUID.randomUUID().toString
     }
     val remoteToUUID = mutable.Map.empty[Remote.Reference, String]
+    val remoteToSig = mutable.Map.empty[Remote.Reference, Peer.Signature]
   }
 
   val state = new State(uuid)
@@ -99,7 +100,7 @@ class RemoteConnections(peer: Peer.Signature, ties: Map[Peer.Signature, Peer.Tie
                   closedHandler.remove()
 
                 val handleAccept =
-                  handleAcceptMessage(connection, remote)
+                  handleAcceptMessage(connection, remote, remotePeer)
                 val handleRequest =
                   handleRequestMessage(connection, remotePeer) andThen {
                     _ map { case (remote, _) => remote }
@@ -216,6 +217,7 @@ class RemoteConnections(peer: Peer.Signature, ties: Map[Peer.Signature, Peer.Tie
                 }
 
                 state.remoteToUUID.addOne((remote, requestingUUID))
+                state.remoteToSig.addOne((remote, remotePeer))
 
                 connection.send(serializeMessage(AcceptMessage(state.hereUUID)))
 
@@ -234,12 +236,14 @@ class RemoteConnections(peer: Peer.Signature, ties: Map[Peer.Signature, Peer.Tie
 
   protected def handleAcceptMessage(
                                    connection: Connection[ConnectionsBase.Protocol],
-                                   remote: Remote.Reference)
+                                   remote: Remote.Reference,
+                                   remotePeer: Peer.Signature)
   : PartialFunction[Message[Method], Try[Remote.Reference]] = {
     case AcceptMessage(uuid) =>
       sync {
         if (!isTerminated) {
           state.remoteToUUID.addOne((remote, uuid))
+          state.remoteToSig.addOne((remote, remotePeer))
           addConnection(remote, connection) map { _ => remote }
         }
         else
@@ -354,7 +358,7 @@ class RemoteConnections(peer: Peer.Signature, ties: Map[Peer.Signature, Peer.Tie
     }
   }
 
-  private def checkConstraints(peer: Peer.Signature, count: Int): Boolean =
+  protected def checkConstraints(peer: Peer.Signature, count: Int): Boolean =
     peer.bases collect (Function unlift { peer =>
       multiplicities get peer map {
         case Peer.Tie.Multiple => true

@@ -7,7 +7,8 @@ import loci.communicator.{Connection, Connector, Listener, ProtocolCommon}
 import scala.util.{Failure, Success, Try}
 
 class MovableRemoteConnections(peer: Peer.Signature, ties: Map[Peer.Signature, Peer.Tie], uuid: Option[String]) extends RemoteConnections(peer, ties, uuid) {
-  private var expectMoveRemote: Option[(Remote.Reference, Boolean)] = None
+  private var expectMoveRemote: Option[(Remote.Reference, Peer.Signature, Boolean)] = None
+  private var ignoreViolationsFor: Option[Peer.Signature] = None
 
   override protected def deserializeMessage(message: MessageBuffer) = {
     val result = Message.deserialize[Method](message)
@@ -29,7 +30,8 @@ class MovableRemoteConnections(peer: Peer.Signature, ties: Map[Peer.Signature, P
       case _: Connector[ProtocolCommon] => false
       case _ => true
     }
-    expectMoveRemote = Some(ref, listen)
+    val sig = state.remoteToSig(ref)
+    expectMoveRemote = Some(ref, sig, listen)
     Success()
   }
 
@@ -43,16 +45,17 @@ class MovableRemoteConnections(peer: Peer.Signature, ties: Map[Peer.Signature, P
 
   // Case 1
   override protected def handleRequestMessage(
-                                      connection: Connection[ConnectionsBase.Protocol],
-                                      remotePeer: Peer.Signature,
-                                      createDesignatedInstance: Boolean = false,
-                                      listener: Listener[ConnectionsBase.Protocol] = null,
-                                      remoteRef: Option[Remote.Reference] = None)
+                                               connection: Connection[ConnectionsBase.Protocol],
+                                               remotePeer: Peer.Signature,
+                                               createDesignatedInstance: Boolean = false,
+                                               listener: Listener[ConnectionsBase.Protocol] = null,
+                                               remoteRef: Option[Remote.Reference] = None)
   : PartialFunction[Message[Method], Try[(Remote.Reference, RemoteConnections)]] = {
     if (expectMoveRemote.isDefined) {
-      val (remote, listen) = expectMoveRemote.get
+      val (remote, sig, listen) = expectMoveRemote.get
       if (listen) {
         expectMoveRemote = None
+        ignoreViolationsFor = Some(sig)
         return super.handleRequestMessage(connection, remotePeer, createDesignatedInstance, listener, Some(remote))
       }
     }
@@ -61,17 +64,26 @@ class MovableRemoteConnections(peer: Peer.Signature, ties: Map[Peer.Signature, P
 
   // Case 2
   override protected def handleAcceptMessage(
-                                     connection: Connection[ConnectionsBase.Protocol],
-                                     remote: Remote.Reference)
+                                              connection: Connection[ConnectionsBase.Protocol],
+                                              remote: Remote.Reference,
+                                              remotePeer: Peer.Signature)
   : PartialFunction[Message[Method], Try[Remote.Reference]] = {
     expectMoveRemote match {
-      case Some((remote, false)) => {
+      case Some((ref, sig, false)) =>
         // The only issue here as far as I can see would be that there is a new Remote.Reference that was created,
         // but is unused. Maybe that breaks some assumptions?
         expectMoveRemote = None
-        super.handleAcceptMessage(connection, remote)
-      }
-      case None => super.handleAcceptMessage(connection, remote)
+        ignoreViolationsFor = Some(sig)
+        super.handleAcceptMessage(connection, ref, remotePeer)
+      case _ => super.handleAcceptMessage(connection, remote, remotePeer)
     }
   }
+
+  override protected def checkConstraints(peer: Peer.Signature, count: Int): Boolean =
+    ignoreViolationsFor match {
+      case Some(s) if s == peer =>
+        ignoreViolationsFor = None
+        true
+      case _ => super.checkConstraints(peer, count)
+    }
 }
