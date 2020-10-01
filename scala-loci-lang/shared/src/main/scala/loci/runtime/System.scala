@@ -357,7 +357,7 @@ class System(
 
   remoteConnections.constraintsViolated foreach { _ =>
     logging.error("tie constraints violated")
-    remoteConnections.terminate()
+    //remoteConnections.terminate()
   }
 
   remoteConnections.terminated foreach { _ =>
