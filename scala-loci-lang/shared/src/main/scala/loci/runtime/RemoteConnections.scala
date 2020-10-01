@@ -283,6 +283,22 @@ class RemoteConnections(peer: Peer.Signature, ties: Map[Peer.Signature, Peer.Tie
       Failure(terminatedException)
   }
 
+  def sendBufferedMessages(remote: Remote.Reference): Unit = sync {
+    if (!state.isTerminated) {
+      if (state.bufferedRemotes contains remote) {
+        logging.info(s"sending buffered messages to $remote")
+        state.bufferedRemotes.remove(remote)
+        state.outgoingMessages.foreach(t => {
+          val (ref, msg) = t
+          if (ref == remote) {
+            send(remote, msg)
+          }
+        })
+      }
+    } else
+      Failure(terminatedException)
+  }
+
   private def handleConstraintChanges[T](changeConnection: => T): T =
     if (!state.isTerminated) {
       val constraintsSatisfiedBefore = constraintViolations.isEmpty
