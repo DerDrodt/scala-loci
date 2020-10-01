@@ -32,7 +32,7 @@ trait ConnectionsBase[R, M] {
     def isTerminated = terminated.get
 
     private[ConnectionsBase] val messages = mutable.ListBuffer.empty[(R, M)]
-    private[ConnectionsBase] val outgoingMessages = mutable.ListBuffer.empty[(R, M)]
+    val outgoingMessages: mutable.ListBuffer[(R, M)] = mutable.ListBuffer.empty[(R, M)]
     private[ConnectionsBase] val listeners = mutable.ListBuffer.empty[Listening]
     val remotes = new ConcurrentLinkedQueue[R]
     val bufferedRemotes = new ConcurrentLinkedQueue[R]
