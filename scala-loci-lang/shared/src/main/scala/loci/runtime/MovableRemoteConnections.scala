@@ -33,7 +33,7 @@ class MovableRemoteConnections(peer: Peer.Signature, ties: Map[Peer.Signature, P
     val sig = state.remoteToSig(ref)
     ignoreViolationsFor = Some(sig)
     println("Ignoring constraint violations for signature " + sig.toString)
-    expectMoveRemote = Some(ref, listen, uuid)
+    expectMoveRemote = Some((ref, listen, uuid))
     Success()
   }
 
@@ -56,34 +56,32 @@ class MovableRemoteConnections(peer: Peer.Signature, ties: Map[Peer.Signature, P
                                                remotePeer: Peer.Signature,
                                                createDesignatedInstance: Boolean = false,
                                                listener: Listener[ConnectionsBase.Protocol] = null,
+                                               replaceUUID: Option[String] = None,
                                                remoteRef: Option[Remote.Reference] = None)
   : PartialFunction[Message[Method], Try[(Remote.Reference, RemoteConnections)]] = {
     if (expectMoveRemote.isDefined) {
       val (remote, listen, uuid) = expectMoveRemote.get
-      if (listen) {
-        println("Got request message while awaiting move")
-        expectMoveRemote = None
-        return super.handleRequestMessage(connection, remotePeer, createDesignatedInstance, listener, Some(remote))
-      }
+      return super.handleRequestMessage(connection, remotePeer, createDesignatedInstance, listener, Some(uuid), Some(remote))
     }
-    super.handleRequestMessage(connection, remotePeer, createDesignatedInstance, listener, remoteRef)
+    super.handleRequestMessage(connection, remotePeer, createDesignatedInstance, listener, replaceUUID, remoteRef)
   }
 
   // Case 2
   override protected def handleAcceptMessage(
                                               connection: Connection[ConnectionsBase.Protocol],
                                               remote: Remote.Reference,
-                                              remotePeer: Peer.Signature)
+                                              remotePeer: Peer.Signature,
+                                              replaceUUID: Option[String] = None,
+                                              replaceRemote: Option[Remote.Reference] = None)
   : PartialFunction[Message[Method], Try[Remote.Reference]] = {
     expectMoveRemote match {
       case Some((ref, false, uuid)) => {
         // The only issue here as far as I can see would be that there is a new Remote.Reference that was created,
         // but is unused. Maybe that breaks some assumptions?
         println("Got accept message while awaiting move")
-        expectMoveRemote = None
-        super.handleAcceptMessage(connection, ref, remotePeer)
+        super.handleAcceptMessage(connection, ref, remotePeer, Some(uuid), Some(ref))
       }
-      case _ => super.handleAcceptMessage(connection, remote, remotePeer)
+      case _ => super.handleAcceptMessage(connection, remote, remotePeer, replaceUUID, replaceRemote)
     }
   }
 

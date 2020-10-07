@@ -195,6 +195,7 @@ class RemoteConnections(peer: Peer.Signature, ties: Map[Peer.Signature, Peer.Tie
       remotePeer: Peer.Signature,
       createDesignatedInstance: Boolean = false,
       listener: Listener[ConnectionsBase.Protocol] = null,
+      replaceUUID: Option[String] = None,
       remoteRef: Option[Remote.Reference] = None)
   : PartialFunction[Message[Method], Try[(Remote.Reference, RemoteConnections)]] = {
     case RequestMessage(requested, requesting, requestingUUID) =>
@@ -209,9 +210,9 @@ class RemoteConnections(peer: Peer.Signature, ties: Map[Peer.Signature, Peer.Tie
                   if (!createDesignatedInstance) this
                   else new RemoteConnections(peer, ties)
 
-                val remote = remoteRef match {
-                  case Some(r) => r
-                  case None => Remote.Reference(
+                val remote = replaceUUID match {
+                  case Some(requestingUUID) => remoteRef.get
+                  case _ => Remote.Reference(
                     instance.state.createId(), remotePeer)(
                     connection.protocol, this)
                 }
@@ -237,14 +238,20 @@ class RemoteConnections(peer: Peer.Signature, ties: Map[Peer.Signature, Peer.Tie
   protected def handleAcceptMessage(
                                    connection: Connection[ConnectionsBase.Protocol],
                                    remote: Remote.Reference,
-                                   remotePeer: Peer.Signature)
+                                   remotePeer: Peer.Signature,
+                                   replaceUUID: Option[String] = None,
+                                   replaceRef: Option[Remote.Reference] = None)
   : PartialFunction[Message[Method], Try[Remote.Reference]] = {
     case AcceptMessage(uuid) =>
       sync {
         if (!isTerminated) {
-          state.remoteToUUID.addOne((remote, uuid))
-          state.remoteToSig.addOne((remote, remotePeer))
-          addConnection(remote, connection) map { _ => remote }
+          val remoteRef = replaceUUID match {
+            case Some(uuid) => replaceRef.get
+            case _ => remote
+          }
+          state.remoteToUUID.addOne((remoteRef, uuid))
+          state.remoteToSig.addOne((remoteRef, remotePeer))
+          addConnection(remoteRef, connection) map { _ => remoteRef }
         }
         else
           Failure(terminatedException)
