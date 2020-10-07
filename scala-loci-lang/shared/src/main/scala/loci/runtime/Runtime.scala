@@ -26,6 +26,7 @@ class Runtime[P](
   private val doTerminated = Notice.Steady[Unit]
 
   val remoteConnections = new MovableRemoteConnections(peer, ties, uuid)
+  var runtimeSystem: System = _
 
   private object state {
     private var running = false
@@ -226,6 +227,8 @@ class Runtime[P](
                 val values = system(
                   ties, context, remoteConnections,
                   requiredListenedRemotes ++ requiredConnectedRemotes, remotes)
+
+                runtimeSystem = values.$loci$sys // Save reference to runtime system
 
                 val instance = new Instance[P](values, remoteConnections)
                 state.instances += instance

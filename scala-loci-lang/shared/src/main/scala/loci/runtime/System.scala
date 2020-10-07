@@ -273,6 +273,10 @@ class System(
       None
   }
 
+  def getAllChannelNames(remote: Remote.Reference): List[String] = {
+    channels.keys.asScala.filter(_._2 == remote).map(_._1).toList
+  }
+
   private[runtime] def closeChannel(channel: Channel, notifyRemote: Boolean): Unit = {
     val channelId = (channel.name, channel.remote)
 
@@ -286,7 +290,7 @@ class System(
     }
   }
 
-  def closeChannels(remote: Remote.Reference): Unit = {
+  private[runtime] def closeChannels(remote: Remote.Reference): Unit = {
     channels.values.asScala.toSeq foreach { channel =>
       if (channel.remote == remote) {
         closeChannel(channel, notifyRemote = false)
