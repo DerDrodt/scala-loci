@@ -286,7 +286,7 @@ class System(
     }
   }
 
-  private[runtime] def closeChannels(remote: Remote.Reference): Unit = {
+  def closeChannels(remote: Remote.Reference): Unit = {
     channels.values.asScala.toSeq foreach { channel =>
       if (channel.remote == remote) {
         closeChannel(channel, notifyRemote = false)
@@ -357,7 +357,7 @@ class System(
 
   remoteConnections.constraintsViolated foreach { _ =>
     logging.error("tie constraints violated")
-    //remoteConnections.terminate()
+    remoteConnections.terminate()
   }
 
   remoteConnections.terminated foreach { _ =>
