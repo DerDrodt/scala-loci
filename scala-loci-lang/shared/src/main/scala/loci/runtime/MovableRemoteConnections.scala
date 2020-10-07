@@ -37,6 +37,11 @@ class MovableRemoteConnections(peer: Peer.Signature, ties: Map[Peer.Signature, P
     Success()
   }
 
+  def finishMove() = {
+    ignoreViolationsFor = None
+    expectMoveRemote = None
+  }
+
   // As I see it, there are two cases:
   // 1. Listen:
   // This is the "easy" one. The connection we want to replace is a listen connection.
@@ -85,7 +90,6 @@ class MovableRemoteConnections(peer: Peer.Signature, ties: Map[Peer.Signature, P
   override protected def checkConstraints(peer: Peer.Signature, count: Int): Boolean =
     ignoreViolationsFor match {
       case Some(s) if s == peer =>
-        ignoreViolationsFor = None
         true
       case _ => super.checkConstraints(peer, count)
     }
