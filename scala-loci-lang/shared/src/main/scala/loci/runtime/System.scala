@@ -244,7 +244,7 @@ class System(
   dispatcher.dispatch(PendingConstruction)
 
 
-  private[runtime] def obtainChannel(
+  def obtainChannel(
       name: String,
       anchorDefault: String,
       remote: Remote.Reference): Channel = {
@@ -273,8 +273,8 @@ class System(
       None
   }
 
-  def getAllChannelNames(remote: Remote.Reference): List[String] = {
-    channels.keys.asScala.filter(_._2 == remote).map(_._1).toList
+  def getAllChannels(): List[(String, Remote.Reference)] = {
+    channels.keys.asScala.map(pair => (pair._1, pair._2.asInstanceOf[Remote.Reference])).toList
   }
 
   private[runtime] def closeChannel(channel: Channel, notifyRemote: Boolean): Unit = {
