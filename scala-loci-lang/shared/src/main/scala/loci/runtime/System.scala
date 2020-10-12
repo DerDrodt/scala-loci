@@ -40,6 +40,8 @@ class System(
 
   private var doneMain = false
 
+  val sentChannelRequests: mutable.ListBuffer[(Remote.Reference, Message[Method])] = new mutable.ListBuffer[(Remote.Reference, Message[Method])]()
+
   singleConnectedRemotes foreach { remote =>
     pendingSingleConnectedRemotes.put(remote, remote)
   }
@@ -468,12 +470,12 @@ class System(
           payload) =>
         getChannel(channelName, remote) match {
           case None =>
-            logging.warn(s"unprocessed message [channel not open]: $message")
+            logging.warn(s"unprocessed message [channel not open]: ")  // TODO: fix root cause behind message rendering crash
 
           case Some(channel) =>
             channelResponseHandlers.remove(channel) match {
               case null =>
-                logging.warn(s"unprocessed message [no handler]: $message")
+                logging.warn(s"unprocessed message [no handler]: ")  // TODO: fix root cause behind message rendering crash
 
               case (connected, handler) =>
                 val buffer =
@@ -494,18 +496,19 @@ class System(
             }
         }
 
-      case ChannelMessage(ChannelMessage.Type.Update, channelName, None, payload) =>
+      case ChannelMessage(ChannelMessage.Type.Update, channelName, None, payload) => {
         getChannel(channelName, remote) match {
           case None =>
-            logging.warn(s"unprocessed message [channel not open]: $message")
+            logging.warn(s"unprocessed message [channel not open]: ") // TODO: fix root cause behind message rendering crash
 
           case Some(channel) =>
-            logging.trace(s"received update from $remote: $message")
+            logging.info(s"received update from $remote: ") // TODO: fix root cause behind message rendering crash
             channel.doReceive.fire(payload)
         }
+      }
 
       case CloseMessage(channelName) =>
-        logging.trace(s"received update from $remote: $message")
+        logging.trace(s"received update from $remote: ") // TODO: fix root cause behind message rendering crash
         getChannel(channelName, remote) foreach { closeChannel(_, notifyRemote = false) }
 
       case _ =>
@@ -525,13 +528,17 @@ class System(
         s"sending remote access for ${placedValue.signature} to ${reference.remote} " +
         s"over channel ${reference.channelName}")
 
-      remoteConnections.send(
-        reference.remote,
-        ChannelMessage(
+      val msg = ChannelMessage(
           messageType,
           reference.channelName,
           Some(Value.Signature.serialize(placedValue.signature)),
-          placedValue.arguments.marshal(arguments, reference)))
+          placedValue.arguments.marshal(arguments, reference))
+
+      // Log channel request messages for future replay
+      if(messageType == ChannelMessage.Type.Request)
+        sentChannelRequests.addOne((reference.remote, msg))
+
+      remoteConnections.send(reference.remote, msg)
     }
 
     def createReference(remote: Remote.Reference) = {
@@ -573,7 +580,7 @@ class System(
 
               if (!isChannelOpen(channel))
                 response.trySet(Failure(new RemoteAccessException(RemoteAccessException.ChannelClosed)))
-              else
+              else 
                 sendRequest(ChannelMessage.Type.Request, reference)
             }
             else
