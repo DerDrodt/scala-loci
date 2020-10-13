@@ -1,6 +1,6 @@
 package loci
 
-import java.util.concurrent.atomic.AtomicReference
+import java.util.concurrent.atomic.{AtomicBoolean, AtomicReference}
 import java.util.concurrent.{ConcurrentLinkedQueue, CountDownLatch, TimeUnit}
 
 import scala.annotation.unchecked.uncheckedVariance
@@ -102,8 +102,30 @@ object Notice {
       def fire()(implicit ev: Unit =:= T @uncheckedVariance): Unit = notice(())
     }
 
+    class PauseableSource[-T] private[Stream](notice: Stream[T]) extends Source[T](notice) {
+      protected var isPaused = new AtomicBoolean(false)
+
+      def pause(): Unit = {
+        isPaused.set(true)
+      }
+
+      def unpause(): Unit = {
+        isPaused.set(false)
+      }
+
+      override def fire(v: T): Unit = {
+        if (!isPaused.get())
+          super.fire(v)
+      }
+
+      override def fire()(implicit ev: Unit =:= T @uncheckedVariance): Unit = {
+        if (!isPaused.get())
+          super.fire()
+      }
+    }
+
     final class NoticeSource[T] private[Stream] (val notice: Stream[T])
-      extends Source[T](notice)
+      extends PauseableSource[T](notice)
 
     def apply[T]: NoticeSource[T] =
       apply(logging.reportException)

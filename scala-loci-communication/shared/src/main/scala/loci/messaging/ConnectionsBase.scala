@@ -3,10 +3,11 @@ package messaging
 
 import communicator._
 import compatibility.jdkCollectionConverters._
-
 import java.util.concurrent.{ConcurrentHashMap, ConcurrentLinkedQueue}
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.locks.ReentrantLock
+
+import loci.Notice.Stream
 
 import scala.collection.mutable
 import scala.util.{Failure, Success, Try}
@@ -42,9 +43,9 @@ trait ConnectionsBase[R, M] {
 
   val state: BaseState
 
-  private val doRemoteJoined = Notice.Stream[R]
+  protected val doRemoteJoined: Stream.NoticeSource[R] = Notice.Stream[R]
 
-  private val doRemoteLeft = Notice.Stream[R]
+  protected val doRemoteLeft: Stream.NoticeSource[R] = Notice.Stream[R]
 
   private val doTerminated = Notice.Steady[List[R]]
 
