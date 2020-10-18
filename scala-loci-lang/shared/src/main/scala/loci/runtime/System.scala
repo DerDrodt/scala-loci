@@ -275,10 +275,6 @@ class System(
       None
   }
 
-  def getAllChannels(): List[(String, Remote.Reference)] = {
-    channels.keys.asScala.map(pair => (pair._1, pair._2.asInstanceOf[Remote.Reference])).toList
-  }
-
   private[runtime] def closeChannel(channel: Channel, notifyRemote: Boolean): Unit = {
     val channelId = (channel.name, channel.remote)
 
