@@ -32,14 +32,18 @@ class MovableRemoteConnections(peer: Peer.Signature, ties: Map[Peer.Signature, P
     }
     val sig = state.remoteToSig(ref)
     ignoreViolationsFor = Some(sig)
+    doRemoteJoined.pause()
+    doRemoteLeft.pause()
     println("Ignoring constraint violations for signature " + sig.toString)
     expectMoveRemote = Some((ref, listen, uuid))
-    Success()
+    Success(())
   }
 
-  def finishMove() = {
+  def finishMove(): Unit = {
     ignoreViolationsFor = None
     expectMoveRemote = None
+    doRemoteJoined.unpause()
+    doRemoteLeft.unpause()
   }
 
   // As I see it, there are two cases:
