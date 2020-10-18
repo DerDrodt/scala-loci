@@ -91,4 +91,10 @@ class MovableRemoteConnections(peer: Peer.Signature, ties: Map[Peer.Signature, P
         true
       case _ => super.checkConstraints(peer, count)
     }
+
+  override def removeConnection(remote: Remote.Reference): Unit =
+      if (state.bufferedRemotes.contains(remote))
+        logging.info(s"Ignoring connection removal of buffered remote $remote")
+      else
+        super.removeConnection(remote)
 }
